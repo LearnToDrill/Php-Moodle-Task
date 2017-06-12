@@ -2,8 +2,6 @@
 
 namespace mod_certificate\task;
 require_once('pushnotifications.php');
-require_once('errorlogging_function.php');
-
 
 
 class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_task
@@ -21,9 +19,7 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
     
     public function get_name()
     {
-        
         return get_string('autoenroll_user_competency_courses', 'mod_certificate');
-        
     }
     
     /**
@@ -34,8 +30,7 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
     public function execute()
     {
         
-        global $DB, $data;
-        
+        global $DB;
         $msg_payload = "";
         
         $subject    = get_string('email_subject_course_expiry', 'mod_certificate', '');
@@ -45,9 +40,8 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
         
         $records = $DB->get_recordset_sql("SELECT userid,firstname,useremail,courseid,usercoursename,enrolid,notifydate,deviceid  FROM vw_autoenroll_user_competency_courses");
         
-
+        
         if (is_null($records) || empty($records)) {
-           
             exit;
         } else {
             
@@ -61,27 +55,7 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
                 $data->deviceid       = $student->deviceid;
                 $data->notifydate     = $student->notifydate;
                 
-                        $data->status       = 0;
-                        $data->enrolid      = $student->enrolid;
-                        $data->userid       = $student->userid;
-                        $data->timestart    = 'djgh';
-                        $data->timeend      = 0;
-                        $data->modifierid   = 0;
-                        $data->timecreated  = time();
-                        $data->timemodified = time();
-                        
-                     try {
-                      if (true == $DB->insert_record('user_enrolments', $data));
-                         echo 'Caught :';
-                    } catch (Exception $err) {
-                        myErrorLog($err->getMessage());
-                        echo 'Caught exception: ',  $err->getMessage(), "\n";
-                    }
-                     
-                      
-                
-                
-            /*    if (time() == (string) ($data->notifydate)) {
+                if (time() == (string) ($data->notifydate)) {
                     $eol    = PHP_EOL;
                     $header = "From:" . "info@learntodrill.com" . $eol;
                     $header .= "MIME-Version: 1.0" . $eol;
@@ -109,11 +83,9 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
                         $data->timecreated  = time();
                         $data->timemodified = time();
                         
-                        
                         $DB->insert_record('user_enrolments', $data);
                         
                         \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));
-                        
                         
                     }
                     
@@ -121,9 +93,9 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
                         
                         exit;
                     }
-                }*/
+                }
             }
-           $records->close();
+            $records->close();
         }
     }
 }
