@@ -3,33 +3,22 @@
 namespace mod_certificate\task;
 require_once('pushnotifications.php');
 
-
 class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_task
 {
-    
-    /**
-    
-    * Get a descriptive name for this task (shown to admins).
-    
-    *
-    
-    * @return string
-    
-    */
-    
+    /**   
+     * Get a descriptive name for this task (shown to admins).   
+     *    
+     * @return string   
+     */
     public function get_name()
     {
         return get_string('autoenroll_user_competency_courses', 'mod_certificate');
     }
-    
-    /**
-    
-    * Run forum cron.
-    
-    */
+    /**    
+     * Run forum cron.   
+     */
     public function execute()
     {
-        
         global $DB;
         $msg_payload = "";
         
@@ -37,14 +26,11 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
         $emailbody  = get_string('email_body', 'mod_certificate', '');
         $msg_notify = get_string('user_course_refreshperiod', 'mod_certificate', '');
         
-        
         $records = $DB->get_recordset_sql("SELECT userid,firstname,useremail,courseid,usercoursename,enrolid,notifydate,deviceid  FROM vw_autoenroll_user_competency_courses");
-        
         
         if (is_null($records) || empty($records)) {
             exit;
         } else {
-            
             foreach ($records as $id => $student) {
                 
                 $data = new \stdClass();
@@ -54,7 +40,6 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
                 $data->useremail      = $student->useremail;
                 $data->deviceid       = $student->deviceid;
                 $data->notifydate     = $student->notifydate;
-                
                 if (time() == (string) ($data->notifydate)) {
                     $eol    = PHP_EOL;
                     $header = "From:" . "info@learntodrill.com" . $eol;
@@ -81,16 +66,11 @@ class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_t
                         $data->timeend      = 0;
                         $data->modifierid   = 0;
                         $data->timecreated  = time();
-                        $data->timemodified = time();
-                        
+                        $data->timemodified = time();                        
                         $DB->insert_record('user_enrolments', $data);
                         
-                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));
-                        
-                    }
-                    
-                    else {
-                        
+                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));                        
+                    } else {
                         exit;
                     }
                 }

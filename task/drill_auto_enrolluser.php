@@ -1,37 +1,24 @@
 <?php
-
 namespace mod_certificate\task;
 require_once('pushnotifications.php');
 
 
 class drill_auto_enrolluser extends \core\task\scheduled_task
 {
-    
-    /**
-    
-    * Get a descriptive name for this task (shown to admins).
-    
-    *
-    
-    * @return string
-    
-    */
-    
+    /**    
+     * Get a descriptive name for this task (shown to admins).    
+     *    
+     * @return string    
+     */
     public function get_name()
     {
-        
         return get_string('autoenrollmentlearningplan', 'mod_certificate');
-        
     }
-    
-    /**
-    
-    * Run forum cron.
-    
-    */
+    /**    
+     * Run forum cron.    
+     */
     public function execute()
     {
-        
         global $DB;
         $name              = "";
         $description       = "";
@@ -50,9 +37,7 @@ class drill_auto_enrolluser extends \core\task\scheduled_task
         if (is_null($records) || empty($records)) {
             exit;
         } else {
-            
             foreach ($records as $id => $rec) {
-                
                 $record                    = new \stdClass();
                 $record->name              = $rec->name;
                 $record->description       = $rec->description;
@@ -66,13 +51,8 @@ class drill_auto_enrolluser extends \core\task\scheduled_task
                 $record->timecreated       = time();
                 $record->timemodified      = $timemodified;
                 $record->usermodified      = $userid;
-                
                 $DB->insert_record('competency_plan', $record);
-                
             }
-            
         }
-        
     }
-    
 }

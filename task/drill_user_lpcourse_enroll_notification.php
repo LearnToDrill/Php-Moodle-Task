@@ -3,38 +3,24 @@
 namespace mod_certificate\task;
 require_once('pushnotifications.php');
 
-
 class drill_user_lpcourse_enroll_notification extends \core\task\scheduled_task
-{
-    
-    /**
-    
-    * Get a descriptive name for this task (shown to admins).
-    
+{   
+    /**    
+    * Get a descriptive name for this task (shown to admins).   
     *
-    
-    * @return string
-    
-    */
-    
+    * @return string    
+    */   
     public function get_name()
-    {
-        
-        return get_string('user_lpcourse_enroll_notification', 'mod_certificate');
-        
-    }
-    
-    /**
-    
-    * Run forum cron.
-    
+    {        
+        return get_string('user_lpcourse_enroll_notification', 'mod_certificate');        
+    }   
+    /**    
+    * Run forum cron.    
     */
     public function execute()
-    {
-        
+    {        
         global $DB;
-        $msg_payload = "";
-        
+        $msg_payload = "";        
         $subject   = get_string('email_subject_course_expiry', 'mod_certificate', '');
         $emailbody = get_string('email_body', 'mod_certificate', '');
         
@@ -43,10 +29,8 @@ class drill_user_lpcourse_enroll_notification extends \core\task\scheduled_task
         if (is_null($records) || empty($records)) {
             exit;
         } else {
-            foreach ($records as $id => $student) {
-                
-                $data = new \stdClass();
-                
+            foreach ($records as $id => $student) {              
+                $data = new \stdClass();                
                 $data->coursename = $student->coursename;
                 $data->deviceid   = $student->deviceid;
                 $data->useremail  = $student->useremail;
@@ -66,14 +50,12 @@ class drill_user_lpcourse_enroll_notification extends \core\task\scheduled_task
                     $replace[]  = (string) ($data->firstname);
                     $email_body = str_replace($find, $replace, $emailbody);
                     
-                    if (mail((string) ($data->useremail), $subject, $email_body, $header, '-f' . "info@learntodrill.com")) {
-                        
+                    if (mail((string) ($data->useremail), $subject, $email_body, $header, '-f' . "info@learntodrill.com")) {                        
                         $find[]      = '[Course Name]';
                         $replace[]   = (string) ($data->coursename);
                         $msg_payload = str_replace($find, $replace, $msg_notify);
                         
-                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));
-                        
+                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));                        
                     } else {
                         exit;
                     }

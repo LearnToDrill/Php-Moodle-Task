@@ -6,39 +6,25 @@ require_once('pushnotifications.php');
 
 class drill_refresher_period_notification extends \core\task\scheduled_task
 {
-    
-    /**
-    
-    * Get a descriptive name for this task (shown to admins).
-    
-    *
-    
-    * @return string
-    
-    */
-    
+    /**    
+     * Get a descriptive name for this task (shown to admins).    
+     *    
+     * @return string    
+     */
     public function get_name()
     {
-        
         return get_string('course_refresher_notification', 'mod_certificate');
-        
     }
-    
-    /**
-    
-    * Run forum cron.
-    
-    */
+    /**    
+     * Run forum cron.    
+     */
     public function execute()
     {
-        
         global $DB;
-        
         $msg_payload = "";
         $subject     = get_string('email_subject_course_expiry', 'mod_certificate', '');
         $emailbody   = get_string('email_body', 'mod_certificate', '');
         $msg_notify  = get_string('user_course_refreshperiod', 'mod_certificate', '');
-        
         
         $records = $DB->get_recordset_sql("SELECT DISTINCT fullname AS usercoursename,usr.firstname AS firstname,usr.email AS useremail,usr.deviceid AS deviceid,
                                                 FLOOR((FLOOR(mcom.duedate-mcert.cert_timecreated) /learningplancount) +mcert.cert_timecreated) AS notifydate
@@ -46,16 +32,11 @@ class drill_refresher_period_notification extends \core\task\scheduled_task
                                                 vw_user_devicedetails  AS usr
                                                 WHERE mcom.courseid = mcert.courseid AND mcom.userid = mcert.userid AND usrnot.userid = mcert.userid AND usr.userid=usrnot.userid
                                                 ");
-        
-        
-        if (is_null($records) || empty($records)) {            
+        if (is_null($records) || empty($records)) {
             exit;
         } else {
-            
             foreach ($records as $id => $student) {
-                
-                $data = new \stdClass();
-                
+                $data                 = new \stdClass();
                 $data->usercoursename = $student->usercoursename;
                 $data->firstname      = $student->firstname;
                 $data->useremail      = $student->useremail;
@@ -81,14 +62,12 @@ class drill_refresher_period_notification extends \core\task\scheduled_task
                         $replace[]   = (string) ($data->usercoursename);
                         $msg_payload = str_replace($find, $replace, $msg_notify);
                         
-                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));
-                        
+                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));                        
                     } else {
                         exit;
                     }
                 }
             }
         }
-        
     }
 }
