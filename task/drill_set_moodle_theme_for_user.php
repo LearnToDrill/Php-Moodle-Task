@@ -40,7 +40,7 @@ class drill_set_moodle_theme_for_user extends \core\task\scheduled_task
 		        $theme = 'magazine';
                 }
                 $DB->execute("UPDATE {user} SET theme= '{$theme}' , timemodified='{$timemodified}' WHERE id = '{$id}' AND email= '{$email}'");
-				}
+	     }
             $records->close();
 		}
 	}
