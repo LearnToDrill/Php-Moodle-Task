@@ -27,15 +27,17 @@ require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . '/repository/lib.php');
 require_once($CFG->dirroot . "/lib/filebrowser/file_browser.php");
 
-class local_quiz_external extends external_api {
+class local_quiz_external extends external_api
+{
     
     /**
      * Returns description of method parameters
      * @return external_function_parameters
      */
-    public static function get_quiz_data_parameters() {
+    public static function get_quiz_data_parameters()
+    {
         return new external_function_parameters(array(
-            'quizid' => new external_value(PARAM_TEXT, 'This will check quiz id')
+            'quizid' => new external_value(PARAM_RAW, 'This will check quiz id')
         ));
     }
     
@@ -43,13 +45,14 @@ class local_quiz_external extends external_api {
      * Returns welcome message
      * @return string welcome message
      */
-    public static function get_quiz_data($quizid) {
+    public static function get_quiz_data($quizid)
+    {
         global $USER;
         global $DB;
         global $CFG;
-        $response["question"] = array();
+        $response             = array();
         $result               = array();
-        $quest[]              = array();
+        $quest                = array();
         $browser              = get_file_browser();
         $context              = context_user::instance($USER->id, IGNORE_MISSING);
         
@@ -84,8 +87,8 @@ class local_quiz_external extends external_api {
             
             // echo $get_image_name;
             
-            $itemid     = '';
-            $filename   = '';
+            $q_itemid     = '';
+            $q_filename   = '';
             $image_data = '';
             // Pass image name to get record from mdl_files.
             
@@ -142,7 +145,7 @@ class local_quiz_external extends external_api {
             $quest["Type"]               = $qtype;
             $quest["Text"]               = $str_qtext;
             $quest["Encoded_Ques_Image"] = $image_data;
-            $quest["Explanation"]        = $str_explaination;
+            $quest["Explaination"]        = $str_explaination;
             $quest["Options"]            = array();
             $quest["CorrectAnswer"]      = $correct_option_id;
             
@@ -214,12 +217,9 @@ class local_quiz_external extends external_api {
                 array_push($quest["Options"], $options);
             }
             
-            array_push($response["question"], $quest);
+            array_push($response, $quest);
         }
-        
-        $quiz_final = json_encode($response);
-        
-        return $quiz_final;
+        return $response;
         
     }
     
@@ -227,8 +227,33 @@ class local_quiz_external extends external_api {
      * Returns description of method result value
      * @return external_description
      */
-    public static function get_quiz_data_returns() {
-        return new external_value(PARAM_TEXT, '');
-    }
-    
+    // public static function get_quiz_data_returns() {
+    //     return new external_value(PARAM_TEXT, 'Pass request parameter quizID and in response, you will receive questions with its options along with the correct answer for each question and its explanation');
+    // }
+
+    public static function get_quiz_data_returns()  {
+        
+            return new external_multiple_structure (
+                new external_single_structure (
+                    array (
+                        'QuestionId' => new external_value(PARAM_RAW, 'Question ID'),
+                        'Name' => new external_value(PARAM_RAW, 'Question Name'),
+                        'Type' => new external_value(PARAM_RAW, 'Question Type.'),
+                        'Text' => new external_value(PARAM_RAW, 'Question Text.'),
+                        'Encoded_Ques_Image' => new external_value(PARAM_RAW, 'Encoded Image '),
+                        'Explaination' => new external_value(PARAM_RAW, 'Explaination to the question.'),
+                        'CorrectAnswer' => new external_value(PARAM_RAW, 'Correct Answer'),
+                        'Options' => new external_multiple_structure (
+                            new external_single_structure(
+                            array(
+                            'OptionId' =>  new external_value(PARAM_RAW, 'OptionID'),
+                            'Value' => new external_value(PARAM_RAW, 'Option value'),
+                            'Encoded_Option_Image' =>  new external_value(PARAM_RAW, 'Encoded Image'),
+                            ) 
+                            ), VALUE_DEFAULT, array()
+                        )
+                    ), VALUE_DEFAULT, array()
+                ) , 'list of Question'
+            );
+        }
 }
