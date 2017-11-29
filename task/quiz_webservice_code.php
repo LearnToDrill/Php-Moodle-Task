@@ -22,6 +22,7 @@
  */
 
 // This web services uses quizid as a required parameter.
+//NOTE: Only JPEG TYPE image is supported by Moodle
 
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . '/repository/lib.php');
@@ -50,11 +51,12 @@ class local_quiz_external extends external_api
         global $USER;
         global $DB;
         global $CFG;
-        $response             = array();
-        $result               = array();
-        $quest                = array();
-        $browser              = get_file_browser();
-        $context              = context_user::instance($USER->id, IGNORE_MISSING);
+        $response     = array();
+        $questiondata = array();
+        $result       = array();
+        $quest        = array();
+        $browser      = get_file_browser();
+        $context      = context_user::instance($USER->id, IGNORE_MISSING);
         
         
         //Parameter validation
@@ -73,7 +75,7 @@ class local_quiz_external extends external_api
             $quizid
         ));
         
-        foreach ($quizdetails as $id => $rec) {
+        foreach ($quizdetails as $id => $rec) { //Loop through quiz
             $quest_id         = $rec->id;
             $name             = $rec->name;
             $q_text           = $rec->questiontext;
@@ -85,10 +87,9 @@ class local_quiz_external extends external_api
             $explaination     = trim(strip_tags($rec->generalfeedback));
             $str_explaination = preg_replace("~\x{00a0}~siu", " ", $explaination);
             
-            // echo $get_image_name;
             
-            $q_itemid     = '';
-            $q_filename   = '';
+            $q_itemid   = '';
+            $q_filename = '';
             $image_data = '';
             // Pass image name to get record from mdl_files.
             
@@ -131,7 +132,30 @@ class local_quiz_external extends external_api
             }
             
             $correct_option_id  = '';
-            $get_correct_option = $DB->get_records_sql('SELECT id FROM {question_answers} WHERE question = ? AND 	fraction =? ', array(
+            
+            if($qtype === "truefalse"){
+                
+                 $get_correct_option = $DB->get_records_sql('SELECT id,answer FROM {question_answers} WHERE question = ? AND     fraction =? ', array(
+                 $quest_id,
+                 1
+                 ), $limitfrom = 0, $limitnum = 0);
+                 
+                 foreach ($get_correct_option as $id => $option) {
+                     
+                    $correct_option_id = $option->answer;
+                }
+                
+                if($correct_option_id =='True'){
+					
+					$correct_option_id = 1;
+					}
+					else{
+					$correct_option_id = 0;
+					}
+                
+            }else{
+
+            $get_correct_option = $DB->get_records_sql('SELECT id FROM {question_answers} WHERE question = ? AND fraction =? ', array(
                 $quest_id,
                 1
             ), $limitfrom = 0, $limitnum = 0);
@@ -139,13 +163,13 @@ class local_quiz_external extends external_api
             foreach ($get_correct_option as $id => $option) {
                 $correct_option_id = $option->id;
             }
-            
+            }
             $quest["QuestionId"]         = $rec->id;
             $quest["Name"]               = $rec->name;
-            $quest["Type"]               = $qtype;
+            $quest["QType"]              = $qtype;
             $quest["Text"]               = $str_qtext;
             $quest["Encoded_Ques_Image"] = $image_data;
-            $quest["Explaination"]        = $str_explaination;
+            $quest["Explaination"]       = $str_explaination;
             $quest["Options"]            = array();
             $quest["CorrectAnswer"]      = $correct_option_id;
             
@@ -158,69 +182,92 @@ class local_quiz_external extends external_api
                 $quest_id
             ));
             
+           // print_r($qz_option);
             foreach ($qz_option as $id => $get_option) {
                 
                 $option_text      = $get_option->answer;
                 $remove_txtbefore = substr($option_text, strpos($option_text, "@@/") + 3);
-                $get_img_name     = substr($remove_txtbefore, 0, strpos($remove_txtbefore, '"'));
+                $img_name         = substr($remove_txtbefore, 0, strpos($remove_txtbefore, '"'));
                 
-                $option   = trim(strip_tags($get_option->answer));
-                $str      = preg_replace("~\x{00a0}~siu", "", $option);
-                $str      = $option;
-                $result[] = $get_option;
+                $option           = trim(strip_tags($get_option->answer));
+                $str              = preg_replace("~\x{00a0}~siu", "", $option);
+                $str_option_value = $option;
+                $result[]         = $get_option;
                 
                 $option_itemid     = '';
                 $option_filename   = '';
                 $option_image_data = '';
                 
-                if ($get_img_name !== '' && isset($get_img_name)) {
+                if ($img_name !== '' && isset($img_name)) {
                     
                     $get_image = $DB->get_records_sql('SELECT itemid,filename FROM {files} WHERE filename = ? AND filearea =? ', array(
-                        $get_img_name,
+                        $img_name,
                         'draft'
                     ), $limitfrom = 0, $limitnum = 0);
                     
                     foreach ($get_image as $id => $record) {
-                        $option_itemid    = $record->itemid;
-                        $_option_filename = $record->filename;
+                        $option_itemid   = $record->itemid;
+                        $option_filename = $record->filename;
                     }
                     
                     $filename  = $option_filename;
                     $component = "user"; //if activity: database
                     $filearea  = "draft";
-                    $itemid    = $option_itemid; // ID from table mdl_question (for activity: database) - row in the table where the above $text is stored
+                    $item_id   = $option_itemid;
                     
-                    if ($fileinfo = $browser->get_file_info($context, $component, $filearea, $itemid, '/', $filename)) {
+                    if ($fileinfo = $browser->get_file_info($context, $component, $filearea, $item_id, '/', $filename)) {
                         
                         // build a Breadcrumb trail
                         $level  = $fileinfo->get_parent();
                         $params = $fileinfo->get_params();
                         $fs     = get_file_storage();
                         
-                        $file = $fs->get_file($params['contextid'], $params['component'], $params['filearea'], $params['itemid'], $params['filepath'], $params['filename']);
+                        $files = $fs->get_file($params['contextid'], $params['component'], $params['filearea'], $params['itemid'], $params['filepath'], $params['filename']);
                         // Create image location Path
-                        if ($file) {
-                            $contenthash = $file->get_contenthash();
+                        
+                        if ($files) {
+                            $contenthash = $files->get_contenthash();
                             $l1          = $contenthash[0] . $contenthash[1];
                             $l2          = $contenthash[2] . $contenthash[3];
                             $location    = $CFG->dataroot . '/filedir' . '/' . $l1 . '/' . $l2 . '/' . $contenthash;
                             
                             $img               = file_get_contents($location);
                             $option_image_data = base64_encode($img);
+                            
                         }
+                        
                     }
+               
                 }
-                $options["OptionId"]             = $get_option->id;
-                $options["Value"]                = $str;
-                $options["Encoded_Option_Image"] = $option_image_data;
-                
-                array_push($quest["Options"], $options);
+                    $options["OptionId"]             = $get_option->id;
+                    $options["Value"]                = $str_option_value;
+                    $options["Encoded_Option_Image"] = $option_image_data;
+                    
+                if ($qtype === "truefalse") {
+                    
+                    if ($str_option_value === "True") {
+                        $option_data = 1;
+                    } else {
+                        $option_data = 0;
+                    }
+                    $options["OptionId"] = $option_data;
+                    $options["Value"]    = $str_option_value;
+                    
+                } 
+                 array_push($quest["Options"], $options);
             }
             
-            array_push($response, $quest);
+            array_push($questiondata, $quest);
         }
+        if ($DB->record_exists_sql('SELECT * FROM {quiz_sections} where quizid=? AND shufflequestions=1', array(
+            $quizid
+        ))) {
+            $response['Shuffle'] = 1;
+        } else {
+            $response['Shuffle'] = 0;
+        }
+        $response['Questions'] = $questiondata;
         return $response;
-        
     }
     
     /**
@@ -230,30 +277,26 @@ class local_quiz_external extends external_api
     // public static function get_quiz_data_returns() {
     //     return new external_value(PARAM_TEXT, 'Pass request parameter quizID and in response, you will receive questions with its options along with the correct answer for each question and its explanation');
     // }
-
-    public static function get_quiz_data_returns()  {
+    
+    public static function get_quiz_data_returns()
+    {
         
-            return new external_multiple_structure (
-                new external_single_structure (
-                    array (
-                        'QuestionId' => new external_value(PARAM_RAW, 'Question ID'),
-                        'Name' => new external_value(PARAM_RAW, 'Question Name'),
-                        'Type' => new external_value(PARAM_RAW, 'Question Type.'),
-                        'Text' => new external_value(PARAM_RAW, 'Question Text.'),
-                        'Encoded_Ques_Image' => new external_value(PARAM_RAW, 'Encoded Image '),
-                        'Explaination' => new external_value(PARAM_RAW, 'Explaination to the question.'),
-                        'CorrectAnswer' => new external_value(PARAM_RAW, 'Correct Answer'),
-                        'Options' => new external_multiple_structure (
-                            new external_single_structure(
-                            array(
-                            'OptionId' =>  new external_value(PARAM_RAW, 'OptionID'),
-                            'Value' => new external_value(PARAM_RAW, 'Option value'),
-                            'Encoded_Option_Image' =>  new external_value(PARAM_RAW, 'Encoded Image'),
-                            ) 
-                            ), VALUE_DEFAULT, array()
-                        )
-                    ), VALUE_DEFAULT, array()
-                ) , 'list of Question'
-            );
-        }
+        return new external_single_structure(array(
+            'Questions' => new external_multiple_structure(new external_single_structure(array(
+                'QuestionId' => new external_value(PARAM_RAW, 'Question ID'),
+                'Name' => new external_value(PARAM_RAW, 'Question Name'),
+                'QType' => new external_value(PARAM_RAW, 'Question Type.'),
+                'Text' => new external_value(PARAM_RAW, 'Question Text.'),
+                'Encoded_Ques_Image' => new external_value(PARAM_RAW, 'Encoded Image '),
+                'Explaination' => new external_value(PARAM_RAW, 'Explaination to the question.'),
+                'CorrectAnswer' => new external_value(PARAM_RAW, 'Correct Answer'),
+                'Options' => new external_multiple_structure(new external_single_structure(array(
+                    'OptionId' => new external_value(PARAM_RAW, 'OptionID'),
+                    'Value' => new external_value(PARAM_RAW, 'Option value'),
+                    'Encoded_Option_Image' => new external_value(PARAM_RAW, 'Encoded Image')
+                )), VALUE_DEFAULT, array())
+            )), VALUE_DEFAULT, array()),
+            'Shuffle' => new external_value(PARAM_INT, 'Question Shuffle')
+        ), VALUE_DEFAULT, array());
+    }
 }
