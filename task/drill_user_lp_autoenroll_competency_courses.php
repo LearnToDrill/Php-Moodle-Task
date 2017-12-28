@@ -5,77 +5,74 @@ require_once('pushnotifications.php');
 
 class drill_user_lp_autoenroll_competency_courses extends \core\task\scheduled_task
 {
-    /**   
-     * Get a descriptive name for this task (shown to admins).   
-     *    
-     * @return string   
+    /**
+     * Get a descriptive name for this task (shown to admins).
+     *
+     * @return string
      */
+    
     public function get_name()
     {
         return get_string('autoenroll_user_competency_courses', 'mod_certificate');
     }
-    /**    
-     * Run forum cron.   
-     */
+    
+    /**
+    
+    * Run forum cron.
+    
+    */
+    
     public function execute()
     {
-        global $DB;
-        $msg_payload = "";
+        /*global $DB, $data;
+        $msg_payload       = "";
+        $error_file        = __FILE__;
+        $error_functioname = __FUNCTION__;
         
-        $subject    = get_string('email_subject_course_expiry', 'mod_certificate', '');
-        $emailbody  = get_string('email_body', 'mod_certificate', '');
-        $msg_notify = get_string('user_course_refreshperiod', 'mod_certificate', '');
-        
-        $records = $DB->get_recordset_sql("SELECT userid,firstname,useremail,courseid,usercoursename,enrolid,notifydate,deviceid  FROM vw_autoenroll_user_competency_courses");
-        
+        $records = $DB->get_recordset_sql("SELECT userid,firstname,useremail,courseid,usercoursename,enrolid,refresherStartDate,refresherCourseEndDate FROM vw_autoenroll_user_competency_courses");
+        echo 'AAAAA';
+        print_r($records);
         if (is_null($records) || empty($records)) {
             exit;
         } else {
             foreach ($records as $id => $student) {
-                
                 $data = new \stdClass();
                 
-                $data->usercoursename = $student->usercoursename;
-                $data->firstname      = $student->firstname;
-                $data->useremail      = $student->useremail;
-                $data->deviceid       = $student->deviceid;
-                $data->notifydate     = $student->notifydate;
-                if (time() == (string) ($data->notifydate)) {
-                    $eol    = PHP_EOL;
-                    $header = "From:" . "info@learntodrill.com" . $eol;
-                    $header .= "MIME-Version: 1.0" . $eol;
-                    $header .= "Return-Path:" . "info@learntodrill.com" . $eol;
-                    $header .= "Content-Type: text/html; charset=\"iso-8859-1\"" . $eol;
+                $data->userid                 = $student->userid;
+                $data->usercoursename         = $student->usercoursename;
+                $data->firstname              = $student->firstname;
+                $data->useremail              = $student->useremail;
+                $data->enrolid                = $student->enrolid;
+                $data->courseid               = $student->courseid;
+                $data->refresherstartdate     = $student->refresherstartdate;
+                $data->refreshercourseenddate = $student->refreshercourseenddate;
+                
+                $getinfo = $DB->record_exists_sql('SELECT enrolid FROM mdl_user_enrolments WHERE userid = ? AND enrolid =? ', array(
+                    $student->userid,
+                    $student->enrolid
+                ));
+                
+                if ($getinfo == 0) {
                     
-                    $find[]     = '[Course Name]';
-                    $replace[]  = (string) ($data->usercoursename);
-                    $find[]     = '[Student First Name]';
-                    $replace[]  = (string) ($data->firstname);
-                    $email_body = str_replace($find, $replace, $emailbody);
-                    
-                    if (mail((string) ($data->useremail), $subject, $email_body, $header, '-f' . "info@learntodrill.com")) {
-                        
-                        $find[]      = '[Course Name]';
-                        $replace[]   = (string) ($data->usercoursename);
-                        $msg_payload = str_replace($find, $replace, $msg_notify);
-                        
+                    try {
                         $data->status       = 0;
                         $data->enrolid      = $student->enrolid;
                         $data->userid       = $student->userid;
-                        $data->timestart    = 0;
-                        $data->timeend      = 0;
-                        $data->modifierid   = 0;
+                        $data->timestart    = $student->refresherstartdate;
+                        $data->timeend      = $student->refreshercourseenddate;
+                        $data->modifierid   = 2;
                         $data->timecreated  = time();
-                        $data->timemodified = time();                        
-                        $DB->insert_record('user_enrolments', $data);
+                        $data->timemodified = time();
                         
-                        \pushnotifications::iOS($msg_payload, (string) ($data->deviceid));                        
-                    } else {
-                        exit;
+                        $DB->insert_record('user_enrolments', $data);
                     }
+                    catch (\Exception $e) {
+                        myErrorHandler($error_file, $error_functioname, $e->getMessage());
+                    }
+                    
                 }
             }
             $records->close();
-        }
+        }*/
     }
 }
